@@ -1,0 +1,188 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Esempio 1: MySQL con backup automatico
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: myapp
+      MYSQL_USER: myapp_user
+      MYSQL_PASSWORD: myapp_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app_network
+
+  mysql_backup:
+    image: db-backup-sidecar:latest  # Sostituisci con il nome della tua immagine
+    depends_on:
+      - mysql
+    environment:
+      DB_TYPE: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root_password
+      DB_NAME: all  # 'all' per tutti i database o specifica il nome
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 7
+      COMPRESS: "true"
+      TZ: Europe/Rome
+    volumes:
+      - ./backups/mysql:/backups
+    networks:
+      - app_network
+    # Esegui backup immediatamente all'avvio
+    command: ["run"]
+
+  # ==========================================
+  # Esempio 2: PostgreSQL con backup schedulato
+  # ==========================================
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  postgres_backup:
+    image: db-backup-sidecar:latest
+    depends_on:
+      - postgres
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres_password
+      DB_NAME: all
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 14
+      COMPRESS: "true"
+      # Schedule: ogni giorno alle 2:00 AM
+      CRON_SCHEDULE: "0 2 * * *"
+    volumes:
+      - ./backups/postgres:/backups
+    networks:
+      - app_network
+    # Modalità schedule per backup automatici
+    command: ["schedule"]
+
+  # ==========================================
+  # Esempio 3: MongoDB con backup
+  # ==========================================
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin_password
+      MONGO_INITDB_DATABASE: myapp
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app_network
+
+  mongodb_backup:
+    image: db-backup-sidecar:latest
+    depends_on:
+      - mongodb
+    environment:
+      DB_TYPE: mongodb
+      DB_HOST: mongodb
+      DB_PORT: 27017
+      DB_USER: admin
+      DB_PASSWORD: admin_password
+      DB_NAME: myapp  # o 'all' per tutti i database
+      DB_AUTH_DB: admin
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 7
+      COMPRESS: "true"
+    volumes:
+      - ./backups/mongodb:/backups
+    networks:
+      - app_network
+    command: ["run"]
+
+  # ==========================================
+  # Esempio 4: Redis con backup
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass redis_password
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
+  redis_backup:
+    image: db-backup-sidecar:latest
+    depends_on:
+      - redis
+    environment:
+      DB_TYPE: redis
+      DB_HOST: redis
+      DB_PORT: 6379
+      DB_PASSWORD: redis_password
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 3
+      COMPRESS: "true"
+      # Backup ogni 6 ore
+      CRON_SCHEDULE: "0 */6 * * *"
+    volumes:
+      - ./backups/redis:/backups
+    networks:
+      - app_network
+    command: ["schedule"]
+
+  # ==========================================
+  # Esempio 5: MariaDB senza password (solo localhost)
+  # ==========================================
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: mariadb_password
+      MARIADB_DATABASE: testdb
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - app_network
+
+  mariadb_backup:
+    image: db-backup-sidecar:latest
+    depends_on:
+      - mariadb
+    environment:
+      DB_TYPE: mariadb
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: mariadb_password
+      DB_NAME: testdb
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 5
+      COMPRESS: "true"
+      # Backup giornaliero alle 3:00 AM
+      CRON_SCHEDULE: "0 3 * * *"
+    volumes:
+      - ./backups/mariadb:/backups
+    networks:
+      - app_network
+    command: ["schedule"]
+
+volumes:
+  mysql_data:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  mariadb_data:
+
+networks:
+  app_network:
+    driver: bridge

@@ -1,0 +1,27 @@
+# Backup files
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.rdb
+*.tar.gz
+
+# Environment files
+.env
+
+# Docker
+.docker/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
