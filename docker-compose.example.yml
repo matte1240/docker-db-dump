@@ -6,6 +6,10 @@ services:
   # ==========================================
   mysql:
     image: mysql:8.0
+    # IMPORTANTE: MySQL 8.0 usa caching_sha2_password di default
+    # MariaDB client (usato in Alpine) non lo supporta completamente
+    # Soluzione: usare mysql_native_password per compatibility
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: myapp
@@ -15,11 +19,17 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql_backup:
     image: db-backup-sidecar:latest  # Sostituisci con il nome della tua immagine
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       DB_TYPE: mysql
       DB_HOST: mysql

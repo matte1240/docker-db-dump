@@ -1,10 +1,12 @@
 FROM alpine:3.19
 
 # Installa i client per tutti i database principali
+# Note: Alpine usa mariadb-client che è compatibile con MySQL 5.x-8.x
+# Per MySQL 8.0 con caching_sha2_password, configurare MySQL con --default-authentication-plugin=mysql_native_password
 RUN apk add --no-cache \
     bash \
     curl \
-    mysql-client \
+    mariadb-client \
     postgresql-client \
     mongodb-tools \
     redis \

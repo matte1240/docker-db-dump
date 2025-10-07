@@ -22,7 +22,8 @@ log_error() {
 
 # Test connessione
 log_info "Test connessione a MySQL/MariaDB su $DB_HOST:$DB_PORT..."
-if ! mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" -e "SELECT 1;" >/dev/null 2>&1; then
+export MYSQL_PWD="$DB_PASSWORD"
+if ! mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -e "SELECT 1;" >/dev/null 2>&1; then
     log_error "Impossibile connettersi al database MySQL/MariaDB"
     exit 1
 fi
@@ -32,7 +33,7 @@ if [ "$DB_NAME" = "all" ]; then
     log_info "Backup di tutti i database..."
     BACKUP_FILE="$BACKUP_DIR/mysql_all_${TIMESTAMP}.sql"
     
-    mysqldump -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" \
+    mysqldump -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" \
         --all-databases \
         --single-transaction \
         --quick \
@@ -44,7 +45,7 @@ else
     log_info "Backup database: $DB_NAME..."
     BACKUP_FILE="$BACKUP_DIR/mysql_${DB_NAME}_${TIMESTAMP}.sql"
     
-    mysqldump -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" \
+    mysqldump -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" \
         --databases "$DB_NAME" \
         --single-transaction \
         --quick \

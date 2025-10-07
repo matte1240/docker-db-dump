@@ -7,27 +7,39 @@ services:
   # ==========================================
   # MYSQL - Decommenta questa sezione
   # ==========================================
-  # mysql:
-  #   image: mysql:8.0
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: changeme
-  #     MYSQL_DATABASE: myapp
-  #   volumes:
-  #     - mysql_data:/var/lib/mysql
+  mysql:
+    image: mysql:8.0
+    # IMPORTANTE: MySQL 8.0 usa caching_sha2_password che non è compatibile con mariadb-client di Alpine
+    # Opzioni: 1) Usare mysql_native_password (raccomandato per compatibility)
+    #          2) Creare utente specifico con mysql_native_password
+    #          3) Usare una base image con MySQL client ufficiale
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme
+      MYSQL_DATABASE: myapp
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pchangeme"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
 
-  # mysql_backup:
-  #   image: db-backup-sidecar:latest
-  #   depends_on:
-  #     - mysql
-  #   environment:
-  #     DB_TYPE: mysql
-  #     DB_HOST: mysql
-  #     DB_USER: root
-  #     DB_PASSWORD: changeme
-  #     DB_NAME: all
-  #   volumes:
-  #     - ./backups:/backups
-  #   command: ["run"]
+  mysql_backup:
+    image: db-backup-sidecar:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_TYPE: mysql
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: changeme
+      DB_NAME: all
+    volumes:
+      - ./backups:/backups
+    command: ["run"]
 
   # ==========================================
   # POSTGRESQL - Decommenta questa sezione
